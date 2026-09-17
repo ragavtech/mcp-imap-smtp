@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+
+# Scratch copies some users end up with at the project root.
+# The real, versioned ones live in scripts/ and are committed.
+/diagnose.mjs
+/setup-claude.sh
+/setup-claude-v2.sh
+reports/

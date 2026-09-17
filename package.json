@@ -1,0 +1,71 @@
+{
+  "name": "mcp-imap-smtp",
+  "version": "1.22.0",
+  "description": "MCP server connecting any MCP-compatible AI assistant to IMAP/SMTP mailboxes. Built for self-hosted and shared cPanel mail: namespace detection, Sent-folder saving, and connection reuse.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-imap-smtp": "dist/index.js"
+  },
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "server": "node dist/index.js",
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node test/namespace.test.mjs && node test/recovery.test.mjs && node test/fresh-install.test.mjs && node test/protocol.test.mjs",
+    "add-account": "node scripts/add-account.mjs",
+    "diagnose": "node scripts/diagnose.mjs",
+    "setup": "bash scripts/setup-claude.sh",
+    "unregister": "bash scripts/setup-claude.sh --remove",
+    "mailboxes": "node scripts/mailboxes.mjs",
+    "remove": "node scripts/remove-mailbox.mjs",
+    "set-repo": "node scripts/set-repo.mjs",
+    "test:live": "node scripts/live-test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "dotenv": "^16.4.5",
+    "imapflow": "^1.0.171",
+    "mailparser": "^3.9.26",
+    "nodemailer": "^10.0.9",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.4.5",
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^6.4.17",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "imap",
+    "smtp",
+    "email",
+    "cpanel",
+    "bluehost",
+    "self-hosted",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "windsurf"
+  ],
+  "files": [
+    "dist",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    ".env.example"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/mcp-imap-smtp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/mcp-imap-smtp/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/mcp-imap-smtp#readme"
+}
