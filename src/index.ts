@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createServer } from "node:http";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   loadConfigFromEnv,
@@ -19,12 +22,16 @@ import {
 
 // Which account to serve. Set ACCOUNT in the client config, or pass it as the
 // first argument. Credentials themselves always come from .env.
-const account = process.env.ACCOUNT ?? process.argv[2] ?? "default";
+const VERSION = "1.23.4";
+
+// Flags like --http are not account names.
+const positional = process.argv.slice(2).filter((a) => !a.startsWith("-"));
+const account = process.env.ACCOUNT ?? positional[0] ?? "default";
 const config = loadConfigFromEnv(account);
 
 const server = new McpServer({
   name: account === "default" ? "mcp-imap-smtp" : `mcp-imap-smtp (${account})`,
-  version: "1.21.0",
+  version: VERSION,
 });
 
 function ok(data: unknown) {
@@ -284,10 +291,71 @@ server.registerTool(
 );
 
 async function main() {
-  const transport = new StdioServerTransport();
+  const wantHttp =
+    (process.env.MCP_TRANSPORT || "").toLowerCase() === "http" ||
+    process.argv.includes("--http");
+
+  if (!wantHttp) {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error(
+      `mcp-imap-smtp ${VERSION} running on stdio, account: ${account} (${config.imapUser})`
+    );
+    return;
+  }
+
+  // Streamable HTTP. Every request needs Authorization: Bearer <HTTP_API_KEY>,
+  // because reachability over the network replaces the trust that stdio gets
+  // from being a child process: a mailbox is one bearer token away.
+  const apiKey = process.env.HTTP_API_KEY || "";
+  if (!apiKey || apiKey.length < 16) {
+    console.error(
+      "Refusing to start HTTP transport without a strong HTTP_API_KEY (16+ chars)."
+    );
+    process.exit(1);
+  }
+
+  const host = process.env.HTTP_HOST || "127.0.0.1";
+  const port = Number(process.env.HTTP_PORT || 8787);
+
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => randomUUID(),
+  });
   await server.connect(transport);
+
+  const authorised = (header?: string) => {
+    if (!header) return false;
+    const m = /^Bearer\s+(.+)$/i.exec(header);
+    return !!m && m[1] === apiKey;
+  };
+
+  const http = createServer(async (req, res) => {
+    if (!req.url || !req.url.startsWith("/mcp")) {
+      // Say nothing about what this server is, or that /mcp exists.
+      res.writeHead(404).end();
+      return;
+    }
+    if (!authorised(req.headers.authorization)) {
+      res.writeHead(401, { "content-type": "application/json" }).end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32001, message: "Unauthorized: missing or invalid bearer token" },
+        })
+      );
+      return;
+    }
+    try {
+      await transport.handleRequest(req, res);
+    } catch (e) {
+      if (!res.headersSent) res.writeHead(500).end();
+    }
+  });
+
+  await new Promise<void>((resolve) => http.listen(port, host, resolve));
   console.error(
-    `mcp-imap-smtp 1.21.0 running on stdio, account: ${account} (${config.imapUser})`
+    `mcp-imap-smtp ${VERSION} running on Streamable HTTP at http://${host}:${port}/mcp, ` +
+      `account: ${account} (${config.imapUser}). Every request needs a valid bearer token.`
   );
 }
 

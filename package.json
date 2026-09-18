@@ -1,6 +1,6 @@
 {
   "name": "mcp-imap-smtp",
-  "version": "1.22.0",
+  "version": "1.23.4",
   "description": "MCP server connecting any MCP-compatible AI assistant to IMAP/SMTP mailboxes. Built for self-hosted and shared cPanel mail: namespace detection, Sent-folder saving, and connection reuse.",
   "type": "module",
   "main": "dist/index.js",
