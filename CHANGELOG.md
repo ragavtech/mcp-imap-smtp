@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.23.5
+
+- Fixed: a long-lived HTTP server would tell every client after the first
+  "Server already initialized" and never recover without a manual restart.
+  One `McpServer` was bound to one `StreamableHTTPServerTransport` for the
+  life of the process, so only the very first client's initialize handshake
+  ever succeeded. Server construction moved into `buildServer()`; HTTP mode
+  now builds a fresh server and a stateless transport
+  (`sessionIdGenerator: undefined`) per request, so no request can be
+  refused by a handshake some earlier, unrelated request already completed.
+  stdio is unchanged, it only ever serves one client for the life of the
+  process anyway.
+
+## 1.23.4
+
+- Added a Streamable HTTP transport alongside stdio, selected with
+  `MCP_TRANSPORT=http` or `--http`. Every request needs
+  `Authorization: Bearer <HTTP_API_KEY>`, since reachability over the
+  network replaces the trust that stdio gets from being a child process.
+  `HTTP_API_KEY` must be at least 16 characters or the process refuses to
+  start. The same binary and account model serve both transports: one
+  process per mailbox account, credentials from `.env` at boot either way.
+
 ## 1.22.0
 
 - Removed the built-in settings for Gmail, Outlook and other large providers.
